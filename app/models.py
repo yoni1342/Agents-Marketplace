@@ -64,4 +64,8 @@ class AgentTemplate(SQLModel, table=True):
     sort_order: int = 0
     # True for platform-seeded templates; reserved for a future admin catalog.
     is_built_in: bool = Field(default=True, index=True)
+    # True for the starter team (CEO + 7 canonical roles) that Bench auto-seeds
+    # into every org. Starter templates are HIDDEN from the hireable browse
+    # list and surfaced only via GET /v1/templates/starter (for seeding).
+    is_starter: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=_utcnow, sa_column=Column(_TZ_DATETIME))

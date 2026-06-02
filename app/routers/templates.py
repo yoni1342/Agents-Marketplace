@@ -110,10 +110,13 @@ def list_templates(
     _: None = Depends(verify_caller),
     session: Session = Depends(get_session),
 ) -> TemplateListResponse:
+    """Hireable catalog — starter-team templates are excluded (they're already
+    on every org's bench; see /starter for seeding)."""
     rows = list(
         session.exec(
             select(AgentTemplate)
             .where(AgentTemplate.is_built_in == True)  # noqa: E712
+            .where(AgentTemplate.is_starter == False)  # noqa: E712
             .order_by(
                 AgentTemplate.category,
                 AgentTemplate.sort_order,
@@ -122,6 +125,31 @@ def list_templates(
         ).all()
     )
     return TemplateListResponse(templates=[_to_entry(t) for t in rows])
+
+
+class StarterListResponse(BaseModel):
+    templates: list[TemplateDetail]
+
+
+@router.get("/starter", response_model=StarterListResponse)
+def list_starter_templates(
+    _: None = Depends(verify_caller),
+    session: Session = Depends(get_session),
+) -> StarterListResponse:
+    """The starter team Bench seeds into every new org (CEO + 7 roles).
+
+    Returns FULL specs (incl. system_prompt) ordered by sort_order so Bench
+    can create the agents directly. Declared before the ``/{slug}`` route so
+    "starter" isn't captured as a slug.
+    """
+    rows = list(
+        session.exec(
+            select(AgentTemplate)
+            .where(AgentTemplate.is_starter == True)  # noqa: E712
+            .order_by(AgentTemplate.sort_order, AgentTemplate.name)
+        ).all()
+    )
+    return StarterListResponse(templates=[_to_detail(t) for t in rows])
 
 
 @router.get("/{slug}", response_model=TemplateDetail)
