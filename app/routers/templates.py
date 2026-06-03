@@ -42,6 +42,9 @@ class TemplateEntry(BaseModel):
     default_budget_cents: int
     sort_order: int
     is_built_in: bool
+    # Newest published spec version for this slug ("" if none yet). Lets the
+    # client compute "upgrade available" against what it pulled.
+    latest_version: str = ""
 
 
 class TemplateDetail(TemplateEntry):
@@ -92,6 +95,7 @@ def _to_entry(t: AgentTemplate) -> TemplateEntry:
         default_budget_cents=t.default_budget_cents,
         sort_order=t.sort_order,
         is_built_in=t.is_built_in,
+        latest_version=t.latest_version or "",
     )
 
 
