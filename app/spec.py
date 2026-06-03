@@ -85,6 +85,12 @@ class ToolDecl(BaseModel):
     id: str
     via: Literal["pipedream", "builtin"] = "builtin"
     app: str | None = None
+    # Optional precise tool→workflow mapping (build plan M3): the specific
+    # Pipedream MCP tool names to expose for this app (e.g.
+    # ["google_sheets-add-single-row"]). When omitted, ALL of the app's tools
+    # are surfaced (the M1 behavior). Lets a spec grant just the capability it
+    # needs rather than the whole app surface.
+    actions: list[str] | None = None
 
     @field_validator("app")
     @classmethod
