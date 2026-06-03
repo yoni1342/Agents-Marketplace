@@ -44,13 +44,16 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # Eval/quality gate (build plan §7, M5). A version can't publish until it
-    # passes eval_cases + a risk-classifier, which we run via OpenAI at publish
-    # time. Empty key → the gate can't run, so publishing a spec WITH
-    # eval_cases is blocked (fail-closed). eval_model is the OpenAI model used
-    # both to run the agent prompt and to judge/score (a known fidelity
-    # simplification vs the spec's declared target model).
+    # passes eval_cases + a risk-classifier, which we run at publish time
+    # through the local `claude` CLI (same provider Bench uses — keychain/OAuth
+    # auth, no API key needed). If the CLI isn't present the gate can't run, so
+    # publishing a spec WITH eval_cases is blocked (fail-closed). eval_model is
+    # the claude alias/ID used both to run the agent prompt and to judge/score
+    # (a known fidelity simplification vs the spec's declared target model).
+    eval_model: str = "haiku"
+    # Legacy/optional — no longer used by the gate (kept so an existing .env
+    # line doesn't error under extra="ignore"; harmless if set).
     openai_api_key: str = ""
-    eval_model: str = "gpt-4o-mini"
 
 
 settings = Settings()

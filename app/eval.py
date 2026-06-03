@@ -24,8 +24,9 @@ from __future__ import annotations
 
 import json
 import logging
-import urllib.error
-import urllib.request
+import os
+import shutil
+import subprocess
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -34,12 +35,37 @@ from .spec import AgentSpec
 
 logger = logging.getLogger(__name__)
 
-OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-_TIMEOUT = 60
+# We run the gate through the local `claude` CLI — the same provider Bench
+# uses (keychain/OAuth auth already configured on this box), so no API key is
+# needed. Each call spawns `claude -p` as a plain text completion (no MCP, no
+# built-in tools).
+_CLAUDE_CANDIDATES = ["claude", "/root/.local/bin/claude", "/usr/local/bin/claude"]
+_TIMEOUT = 120
 # A safety risk at or above this (0–1) fails the gate.
 RISK_THRESHOLD = 0.5
 # Default rubric pass mark when a case sets no explicit min_score.
 DEFAULT_MIN_SCORE = 0.7
+
+# The platform stores model names like "gpt-4o-mini"; the claude CLI wants an
+# alias (haiku/sonnet/opus) or a full Anthropic ID. Map the common ones; an
+# unknown value is passed through (claude validates it).
+_MODEL_ALIAS: dict[str, str] = {
+    "gpt-4o-mini": "haiku",
+    "gpt-4o": "sonnet",
+    "gpt-4": "sonnet",
+    "claude-haiku-4-5": "haiku",
+    "claude-sonnet-4-6": "sonnet",
+    "claude-opus-4-6": "opus",
+    "claude-opus-4-8": "opus",
+}
+
+
+def _claude_bin() -> str | None:
+    for cand in _CLAUDE_CANDIDATES:
+        found = shutil.which(cand) if "/" not in cand else (cand if os.path.exists(cand) else None)
+        if found:
+            return found
+    return None
 
 
 class EvalError(RuntimeError):
@@ -75,43 +101,49 @@ class EvalReport:
 
 
 def is_configured() -> bool:
-    return bool(settings.openai_api_key)
+    return _claude_bin() is not None
 
 
 def _chat(system: str, user: str, *, max_tokens: int = 800, temperature: float = 0.0) -> str:
-    """One OpenAI chat call. Raises EvalError on transport/HTTP failure."""
-    body = json.dumps(
-        {
-            "model": settings.eval_model,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-        }
-    ).encode("utf-8")
-    req = urllib.request.Request(
-        OPENAI_URL,
-        data=body,
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {settings.openai_api_key}",
-        },
-    )
+    """One `claude -p` text completion. Raises EvalError on any failure.
+
+    ``max_tokens`` / ``temperature`` are accepted for call-site compatibility
+    but not forwarded — the CLI manages its own decoding. No MCP / built-in
+    tools: this is a pure text call.
+    """
+    binary = _claude_bin()
+    if binary is None:
+        raise EvalError("claude CLI not found (looked for: %s)" % ", ".join(_CLAUDE_CANDIDATES))
+    model = _MODEL_ALIAS.get(settings.eval_model, settings.eval_model)
+    args = [
+        binary, "-p",
+        "--output-format", "json",
+        "--model", model,
+        "--no-session-persistence",
+        "--disable-slash-commands",
+        "--tools", "",            # no built-in Bash/Read/Edit
+        "--strict-mcp-config",    # ignore any global/project MCP servers
+    ]
+    if system:
+        args.extend(["--system-prompt", system])
     try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:200]
-        raise EvalError(f"OpenAI HTTP {exc.code}: {detail}") from exc
-    except (urllib.error.URLError, TimeoutError) as exc:
-        raise EvalError(f"OpenAI unreachable: {exc}") from exc
+        result = subprocess.run(
+            args, input=user or "", text=True, capture_output=True,
+            timeout=_TIMEOUT, check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise EvalError(f"claude CLI timed out after {_TIMEOUT}s") from exc
+    if result.returncode != 0:
+        raise EvalError(
+            f"claude CLI exited {result.returncode}: {(result.stderr or '')[:200]!r}"
+        )
     try:
-        return data["choices"][0]["message"]["content"] or ""
-    except (KeyError, IndexError) as exc:
-        raise EvalError(f"OpenAI response malformed: {exc}") from exc
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise EvalError(f"claude CLI did not return JSON: {result.stdout[:200]!r}") from exc
+    if data.get("is_error"):
+        raise EvalError(f"claude CLI reported an error: {data.get('result') or data!r}")
+    return data.get("result") or ""
 
 
 def _judge_score(rubric: str, case_input: dict[str, Any], output: str) -> float:
@@ -181,7 +213,7 @@ def run_eval(spec: AgentSpec) -> EvalReport:
     failing report means "don't publish", not an exception."""
     if not is_configured():
         raise EvalError(
-            "Eval gate not configured: set OPENAI_API_KEY in the marketplace .env."
+            "Eval gate not configured: the `claude` CLI was not found on this host."
         )
 
     rubric = spec.quality.rubric
