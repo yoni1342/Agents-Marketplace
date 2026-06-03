@@ -14,9 +14,11 @@ to live in Bench's ``models.py`` — the extraction is a lift, not a rewrite.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
@@ -68,4 +70,62 @@ class AgentTemplate(SQLModel, table=True):
     # into every org. Starter templates are HIDDEN from the hireable browse
     # list and surfaced only via GET /v1/templates/starter (for seeding).
     is_starter: bool = Field(default=False, index=True)
+    # --- rich-spec / versioning identity (build plan §4, D-0006) ------------
+    # Who authored/owns the template. Empty on legacy rows seeded before
+    # versioning landed; backfilled as specs are enriched.
+    maintainer: str = Field(default="")
+    # The newest published version in ``agent_template_versions`` for this slug
+    # (semver string). Empty until the slug has at least one published version;
+    # the flat columns above remain the v0 definition during the transition.
+    latest_version: str = Field(default="")
     created_at: datetime = Field(default_factory=_utcnow, sa_column=Column(_TZ_DATETIME))
+
+
+class AgentTemplateVersion(SQLModel, table=True):
+    """One published version of an agent spec (build plan §4).
+
+    Where ``AgentTemplate`` is the stable identity, this is the rich,
+    immutable-once-published definition: the prompt, multi-model routing, the
+    declared tools, the client-customizable ``config_schema`` (guardrails), and
+    the ``quality`` block (rubric + eval cases + safety dimensions) that the
+    eval gate scores. Clients pull a specific (slug, version) and copy it into
+    their runtime, so a published version must never mutate — fix-forward by
+    publishing a new version instead.
+
+    The jsonb columns hold the same structures that ``app.spec.AgentSpec``
+    validates; ``app.spec`` is the single source of truth for their shape.
+    """
+
+    __tablename__ = "agent_template_versions"
+    __table_args__ = (
+        UniqueConstraint("slug", "version", name="uq_template_version"),
+    )
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    # FK to the identity row's slug (which is unique). CASCADE so deleting a
+    # template removes its version history.
+    slug: str = Field(
+        sa_column=Column(
+            String,
+            ForeignKey("agent_templates.slug", ondelete="CASCADE"),
+            index=True,
+            nullable=False,
+        )
+    )
+    version: str  # semver MAJOR.MINOR.PATCH
+    system_prompt: str
+    # model: {default, hard?, cheap?}
+    model_routing: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
+    # [{id, via}]
+    tools: list[Any] = Field(default_factory=list, sa_column=Column(JSONB))
+    # {field: {type, required, default}}
+    config_schema: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
+    # {rubric, eval_cases, safety_dimensions}
+    quality: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
+    budget_cents: int = Field(default=2500)
+    # Set true once the version clears the eval/quality gate (build plan §7);
+    # the publish path can refuse to expose unpassed versions later.
+    eval_passed: bool = Field(default=False)
+    # The eval gate's structured output (scores per dimension, failures).
+    eval_report: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
+    published_at: datetime = Field(default_factory=_utcnow, sa_column=Column(_TZ_DATETIME))
