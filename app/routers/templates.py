@@ -22,7 +22,7 @@ from .. import eval as eval_gate
 from ..auth import require_service_key, verify_caller
 from ..db import get_session
 from ..models import AgentTemplate, AgentTemplateVersion
-from ..spec import SpecValidationError, load_spec
+from ..spec import ConfigField, SpecValidationError, load_spec, validate_overrides
 
 router = APIRouter(prefix="/v1/templates", tags=["marketplace"])
 
@@ -425,6 +425,43 @@ def list_versions(
         )
         for v in rows
     ]
+
+
+class ValidateConfigResponse(BaseModel):
+    """The effective config after validating a client's overrides against a
+    version's config_schema (defaults filled in)."""
+
+    effective: dict
+
+
+@router.post(
+    "/{slug}/versions/{version}/validate-config",
+    response_model=ValidateConfigResponse,
+)
+def validate_config(
+    slug: str,
+    version: str,
+    config_overrides: dict,
+    _: None = Depends(verify_caller),
+    session: Session = Depends(get_session),
+) -> ValidateConfigResponse:
+    """Validate a client's config_overrides against a version's config_schema —
+    the single authoritative implementation (the runtime calls this instead of
+    re-implementing the rules; see DECISIONS D-0004). 422 with a readable detail
+    when overrides are rejected."""
+    v = session.exec(
+        select(AgentTemplateVersion)
+        .where(AgentTemplateVersion.slug == slug)
+        .where(AgentTemplateVersion.version == version)
+    ).first()
+    if v is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+    schema = {k: ConfigField(**vv) for k, vv in (v.config_schema or {}).items()}
+    try:
+        effective = validate_overrides(schema, config_overrides or {})
+    except SpecValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return ValidateConfigResponse(effective=effective)
 
 
 @router.get("/{slug}/versions/{version}", response_model=VersionDetail)
