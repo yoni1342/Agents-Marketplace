@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Agent spec template (schema v1). Copy this file, fill it in, then:
+#   python -m app.cli lint    my-agent.yaml      # validate
+#   python -m app.cli eval    my-agent.yaml      # run the quality gate locally
+#   python -m app.cli publish my-agent.yaml      # publish to the catalog
+# Field reference: docs/SPEC.md · How to write a great one: docs/AUTHORING.md
+# ─────────────────────────────────────────────────────────────────────────
+
+slug: my-agent              # lowercase kebab-case, stable id (never reused)
+version: 1.0.0              # semver MAJOR.MINOR.PATCH — bump on every publish
+name: My Agent              # display name, include the article ("The …")
+category: Marketing         # UI grouping: Marketing / Finance / Operations / …
+maintainer: your-handle     # who owns + tunes this agent
+tagline: "I do X so you don't have to."   # first-person hook on the card
+
+# Multi-model routing — escalate only the steps that need it.
+model:
+  default: claude-sonnet-4-6
+  hard: claude-opus-4-6     # optional — for the hard cases
+  cheap: claude-haiku-4-5   # optional — for trivial steps
+
+# The prompt you tune over time. This is most of the agent's quality.
+system_prompt: |
+  You are <role>. <What you do, how you do it, what good output looks like.>
+  Be concrete; produce the actual deliverable, not a plan to produce it.
+
+# Capabilities. via: pipedream runs in the CLIENT's connected account; omit
+# `via` (or use builtin) for platform-native tools (web_search, …).
+tools:
+  - id: web_search
+  - id: update_tracker
+    via: pipedream
+    app: google_sheets       # the Pipedream app slug this tool maps to
+    actions:                 # optional — expose only these MCP tools (else all)
+      - google_sheets-add-single-row
+
+# What the CLIENT may customize at activation (the guardrails). Types:
+# string | integer | number | boolean | array | object.
+config_schema:
+  brand_voice: { type: string, required: true }
+  target_word_count: { type: integer, default: 1500 }
+  off_limits_topics: { type: array, default: [] }
+
+# The moat — ships WITH the agent. The eval gate runs these before publish.
+quality:
+  rubric: |
+    How to grade an output 0.0–1.0: reward <…>; penalize <…>.
+  eval_cases:
+    - input: { topic: "an example task input" }
+      expect:
+        min_score: 0.7        # rubric score the output must reach
+        must_include: ["a substring the output must contain"]
+        must_not: ["a substring it must not contain"]
+  safety_dimensions: [hallucination, brand_drift, plagiarism, topical_drift]
+
+budget:
+  default_monthly_cents: 2500   # the spend cap the activated agent ships with
+
+monitoring:
+  track: [tokens, cost, latency, quality_score, flag_rate]
