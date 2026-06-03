@@ -1,0 +1,64 @@
+name: ci
+
+# Quality gate for the catalog repo: lint agent specs, import-check, build the
+# image, and smoke the migrations. Runs on every PR + push (not a deploy).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Lint agent specs (agentctl)
+        run: |
+          set -euo pipefail
+          # The example template must always be valid.
+          python -m app.cli lint examples/agent-spec.template.yaml
+          # Lint any committed specs, if a specs/ dir exists.
+          if [ -d specs ]; then
+            find specs -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | \
+              while IFS= read -r -d '' f; do
+                echo "linting $f"
+                python -m app.cli lint "$f"
+              done
+          fi
+      - name: Import check
+        run: python -c "import app.main; import app.spec; import app.eval; print('imports ok')"
+
+  migrations-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agent
+          POSTGRES_PASSWORD: agent
+          POSTGRES_DB: agent_marketplace
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agent" --health-interval 5s
+          --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://agent:agent@localhost:5432/agent_marketplace
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: alembic upgrade head (fresh DB)
+        run: alembic upgrade head
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image (no push — validates the Dockerfile)
+        run: docker build -t marketplace:ci .
