@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from .. import eval as eval_gate
 from ..auth import require_service_key, verify_caller
 from ..db import get_session
 from ..models import AgentTemplate, AgentTemplateVersion
@@ -293,15 +294,24 @@ def _version_detail(t: AgentTemplate, v: AgentTemplateVersion) -> VersionDetail:
 def publish_version(
     slug: str,
     spec_body: dict,
+    allow_uneval: bool = False,
     _: None = Depends(require_service_key),
     session: Session = Depends(get_session),
 ) -> VersionDetail:
     """Publish a new immutable version of a template's spec (operator-only).
 
-    The body is a full agent spec (see ``app.spec.AgentSpec``); it is validated
-    before anything is written. The ``slug`` in the body must match the path.
-    A published (slug, version) is immutable — re-publishing the same version is
-    a 409; fix-forward by bumping the version instead.
+    The body is a full agent spec (see ``app.spec.AgentSpec``); it is validated,
+    then run through the **eval/quality gate** (build plan §7) before anything
+    is written. The ``slug`` in the body must match the path. A published
+    (slug, version) is immutable — re-publishing the same version is a 409.
+
+    Gate rules:
+    * spec has ``eval_cases`` → run them + the risk classifier; a failing report
+      blocks the publish (422, report in the detail). The stored ``eval_report``
+      records the run.
+    * spec has NO ``eval_cases`` → there's nothing to gate on; blocked unless
+      ``?allow_uneval=true`` is passed (the bootstrap escape hatch). Such a
+      version is stored with ``eval_passed=false``.
     """
     try:
         spec = load_spec(spec_body)
@@ -333,6 +343,37 @@ def publish_version(
             detail=f"version {spec.version} of {slug} is already published (immutable).",
         )
 
+    # --- the eval/quality gate (build plan §7) ------------------------------
+    eval_passed = False
+    eval_report: dict = {}
+    if spec.quality.eval_cases:
+        try:
+            report = eval_gate.run_eval(spec)
+        except eval_gate.EvalError as exc:
+            raise HTTPException(status_code=503, detail=f"Eval gate unavailable: {exc}")
+        eval_report = report.to_dict()
+        if not report.passed:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": (
+                        f"{slug} v{spec.version} failed the eval/quality gate — "
+                        "not published. Fix the prompt and bump the version."
+                    ),
+                    "report": eval_report,
+                },
+            )
+        eval_passed = True
+    elif not allow_uneval:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Spec has no quality.eval_cases, so it can't pass the eval gate. "
+                "Add eval cases, or pass ?allow_uneval=true to publish ungated "
+                "(it will be marked eval_passed=false)."
+            ),
+        )
+
     version = AgentTemplateVersion(
         slug=spec.slug,
         version=spec.version,
@@ -342,10 +383,8 @@ def publish_version(
         config_schema={k: v.model_dump() for k, v in spec.config_schema.items()},
         quality=spec.quality.model_dump(),
         budget_cents=spec.budget.default_monthly_cents,
-        # The eval/quality gate (build plan §7) is not built yet; versions
-        # publish un-gated for now. M5 flips this to require a passing report.
-        eval_passed=False,
-        eval_report={},
+        eval_passed=eval_passed,
+        eval_report=eval_report,
     )
     session.add(version)
 

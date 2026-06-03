@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     # Comma-separated CORS origins for any future browser-direct calls.
     cors_origins: str = "http://localhost:3000"
 
+    # Eval/quality gate (build plan §7, M5). A version can't publish until it
+    # passes eval_cases + a risk-classifier, which we run via OpenAI at publish
+    # time. Empty key → the gate can't run, so publishing a spec WITH
+    # eval_cases is blocked (fail-closed). eval_model is the OpenAI model used
+    # both to run the agent prompt and to judge/score (a known fidelity
+    # simplification vs the spec's declared target model).
+    openai_api_key: str = ""
+    eval_model: str = "gpt-4o-mini"
+
 
 settings = Settings()
 
