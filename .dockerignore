@@ -1,0 +1,13 @@
+# Keep secrets, local venv, and build cruft out of the image/context.
+.env
+.env.*
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.git/
+.gitignore
+.pytest_cache/
+*.md
+docs/
+examples/
