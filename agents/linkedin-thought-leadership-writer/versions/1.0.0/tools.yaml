@@ -1,0 +1,20 @@
+tools:
+  - id: web_search
+  - id: queue_linkedin_post
+    via: pipedream
+    app: linkedin
+  - id: save_post_ideas
+    via: pipedream
+    app: google_sheets
+    actions:
+      - google_sheets-add-single-row
+  - id: notify_editor
+    via: pipedream
+    app: slack
+
+skills:
+  - editorial-linkedin-writing
+  - operator-voice-enforcement
+
+scripts:
+  - scripts/validate_post_length.sh

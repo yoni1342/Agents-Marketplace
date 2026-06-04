@@ -1,0 +1,14 @@
+tools:
+  - id: web_search
+  - id: save_cluster_plan
+    via: pipedream
+    app: google_sheets
+    actions:
+      - google_sheets-add-single-row
+  - id: notify_strategy_channel
+    via: pipedream
+    app: slack
+
+skills:
+  - cluster-planning
+  - serp-structure-analysis

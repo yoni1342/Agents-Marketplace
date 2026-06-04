@@ -4,6 +4,43 @@ The marketplace is dev-curated: quality is the moat, not the catalog UI. This is
 the bar a spec should clear before you publish. Field mechanics are in
 [SPEC.md](./SPEC.md); this doc is the *craft*.
 
+## Package structure
+
+Specialized agents now live in git as packages:
+
+```text
+agents/<slug>/
+  agent.yaml
+  README.md
+  versions/
+    1.0.0/
+      version.yaml
+      system_prompt.md
+      tools.yaml
+      connections.yaml
+      config.schema.yaml
+      quality.yaml
+      scripts/
+```
+
+- `agent.yaml` holds the stable marketplace metadata (`role`, `sort_order`,
+  starter vs hireable).
+- each version directory is the immutable published agent package
+- `tools.yaml` can declare future-facing `skills` and helper `scripts` even if
+  only the `tools:` block is compiled into the current runtime spec
+- `connections.yaml` is the user-side integration contract for Pipedream-backed
+  apps the agent requires
+
+Local commands:
+
+```bash
+python -m app.cli lint-all agents
+python -m app.cli sync agents --allow-uneval
+```
+
+`sync` writes the git-authored packages into the local marketplace DB so you can
+test the real browse/pull behavior end to end.
+
 ## The loop
 
 ```

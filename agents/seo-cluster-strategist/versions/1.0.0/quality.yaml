@@ -1,0 +1,23 @@
+rubric: |
+  Score high when the plan is cluster-first, commercially useful, and gives
+  clear pillar/supporting content structure. Penalize shallow keyword lists,
+  scattered ideas, fake metrics, or missing output sections.
+eval_cases:
+  - input:
+      domain: "example.com"
+      target_audience: "IT leaders at small and mid-sized businesses"
+      owned_topics: ["Microsoft 365", "cybersecurity", "managed IT"]
+    expect:
+      min_score: 0.7
+      must_include:
+        - "CLUSTER_TITLE:"
+        - "STRATEGIC_THESIS:"
+        - "PILLAR_PAGE:"
+        - "SUPPORTING_CONTENT:"
+        - "CONNECTIONS_NEEDED:"
+      must_not:
+        - "SEO is important"
+safety_dimensions:
+  - hallucination
+  - topical_drift
+  - plagiarism

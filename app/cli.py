@@ -7,14 +7,18 @@ code.
 Usage (from the Agents-Marketplace repo root, in its venv):
 
     python -m app.cli lint    <spec.yaml>
+    python -m app.cli lint-all [agents/]
     python -m app.cli eval    <spec.yaml>
     python -m app.cli publish <spec.yaml> [--url URL] [--key KEY] [--allow-uneval]
+    python -m app.cli sync    [agents/] [--allow-uneval]
 
   lint     Validate the spec against schema v1. No network. Exit 1 on error.
+  lint-all Validate every git-authored package under specs/.
   eval     Run the eval/quality gate locally (makes LLM calls via the claude
            CLI) and print the report. Exit 1 if it would not pass.
   publish  POST the spec to a running catalog, which re-runs the gate
            server-side and stores the version. Exit 1 on rejection.
+  sync     Upsert git-authored packages into the local marketplace DB.
 
 Start from ``examples/agent-spec.template.yaml`` and see ``docs/AUTHORING.md``.
 """
@@ -26,7 +30,12 @@ import sys
 import urllib.error
 import urllib.request
 
+from sqlmodel import Session
+
+from .catalog_sync import sync_specs
 from .config import settings
+from .db import engine
+from .spec_repo import RepoValidationError, discover_packages
 from .spec import SpecValidationError, load_spec
 
 
@@ -85,6 +94,24 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return 0 if report.passed else 1
 
 
+def cmd_lint_all(args: argparse.Namespace) -> int:
+    try:
+        packages = discover_packages(args.root)
+    except RepoValidationError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    if not packages:
+        print(f"no agent packages found under {args.root}")
+        return 0
+    for package in packages:
+        versions = ", ".join(v.spec.version for v in package.versions)
+        print(
+            f"OK  {package.manifest.slug} — role={package.manifest.role} "
+            f"versions=[{versions}]"
+        )
+    return 0
+
+
 def cmd_publish(args: argparse.Namespace) -> int:
     text = _read(args.spec)
     try:
@@ -115,6 +142,30 @@ def cmd_publish(args: argparse.Namespace) -> int:
         _die(f"catalog unreachable at {url}: {exc.reason}")
 
 
+def cmd_sync(args: argparse.Namespace) -> int:
+    try:
+        with Session(engine) as session:
+            report = sync_specs(
+                session,
+                args.root,
+                allow_uneval=args.allow_uneval,
+            )
+    except RepoValidationError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    for item in report.versions:
+        print(
+            f"{item.action:7} {item.slug} v{item.version} "
+            f"(eval_passed={item.eval_passed})"
+        )
+    print(
+        f"\npackages={report.packages} "
+        f"identities(created={report.identities_created}, updated={report.identities_updated}) "
+        f"versions(created={report.versions_created}, skipped={report.versions_skipped})"
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="agentctl", description=__doc__)
     sub = p.add_subparsers(dest="command", required=True)
@@ -122,6 +173,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("lint", help="validate a spec (no network)")
     sp.add_argument("spec")
     sp.set_defaults(func=cmd_lint)
+
+    sla = sub.add_parser("lint-all", help="validate all git-authored agent packages")
+    sla.add_argument("root", nargs="?", default="agents")
+    sla.set_defaults(func=cmd_lint_all)
 
     se = sub.add_parser("eval", help="run the eval gate locally")
     se.add_argument("spec")
@@ -134,6 +189,12 @@ def build_parser() -> argparse.ArgumentParser:
     pub.add_argument("--allow-uneval", action="store_true",
                      help="publish a spec with no eval_cases (eval_passed=false)")
     pub.set_defaults(func=cmd_publish)
+
+    sync = sub.add_parser("sync", help="sync git-authored specs into the local DB")
+    sync.add_argument("root", nargs="?", default="agents")
+    sync.add_argument("--allow-uneval", action="store_true",
+                      help="allow publishing specs that have no eval_cases")
+    sync.set_defaults(func=cmd_sync)
     return p
 
 

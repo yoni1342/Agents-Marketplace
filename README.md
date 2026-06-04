@@ -92,32 +92,71 @@ Reads accept either; writes (catalog curation) require the service key.
 | PATCH | `/v1/templates/{slug}` | service key | Update an entry. |
 | DELETE | `/v1/templates/{slug}` | service key | Remove an entry. |
 
-## Adding or editing an agent
+## File-based authoring (source of truth)
 
-This is the only place you edit to add a new agent — Bench needs **no changes**
-and picks it up automatically.
+The marketplace is moving to **git-authored agent packages**. Postgres remains
+the serving layer, but the source of truth for curated agents lives in:
 
-**Permanent (version-controlled) — recommended:**
-1. Add an entry to the catalog source in `app/builtin_templates.py`:
-   - `BUILTIN_TEMPLATES` for a hireable specialist, or
-   - `STARTER_TEMPLATES` for a starter-team agent.
-   Fields: `slug` (kebab-case, unique), `name`, `tagline` (first-person, role-
-   voiced), `role`, `category`, `sort_order`, `default_model`,
-   `default_budget_cents`, `system_prompt` (wrap role text in `_p(...)` so it
-   gets the shared preamble).
-2. Add an Alembic migration that inserts the row (see
-   `0003_add_seo_specialist.py` — it imports the entry from
-   `builtin_templates.py` and uses `ON CONFLICT (slug) DO NOTHING` so it's
-   safe on both fresh and existing databases).
-3. `alembic upgrade head` (the systemd unit does this on restart).
+```text
+agents/
+  <slug>/
+    agent.yaml          # stable marketplace metadata (role, sort order, starter?)
+    README.md           # human-facing description / maintenance notes
+    versions/
+      1.0.0/
+        version.yaml
+        system_prompt.md
+        tools.yaml
+        connections.yaml
+        config.schema.yaml
+        quality.yaml
+        scripts/
+      1.1.0/
+        ...
+```
 
-**Quick (no deploy) — for one-offs:** `POST /v1/templates` with the service
-key. Good for experiments; prefer the code path for anything you want to keep.
+This is the structure we want for specialized agents: prompt, tools,
+configurable fields, quality rubric, eval cases, and monitoring all live in git
+and go through PR review.
 
-Either way, the new agent appears in Bench immediately (hireable specialists on
-the marketplace page; starter agents in the next org that's provisioned).
-Editing the shared preamble? Keep it identical to Bench's
-`default_agents._COMMON_PREAMBLE`.
+### Add a new specialized agent
+
+1. Create `agents/<slug>/agent.yaml`:
+   - `slug`
+   - `role`
+   - `sort_order`
+   - `is_starter`
+   - `is_built_in`
+2. Add a version bundle under `agents/<slug>/versions/<semver>/`:
+   - `version.yaml` — name, tagline, maintainer, model routing, budget
+   - `system_prompt.md` — the actual prompt
+   - `tools.yaml` — tool declarations + optional `skills` / `scripts`
+   - `connections.yaml` — required client-side app connections (Pipedream contract)
+   - `config.schema.yaml` — what the client is allowed to customize
+   - `quality.yaml` — rubric, eval cases, safety dimensions
+3. Validate locally:
+
+```bash
+python -m app.cli lint-all agents
+```
+
+4. Merge to `main`.
+
+On deploy, the marketplace container runs:
+
+```bash
+python -m app.cli sync agents --allow-uneval
+```
+
+That syncs new git-authored packages into Postgres and updates the marketplace
+without manual DB edits.
+
+### Transitional note
+
+`app/builtin_templates.py` still exists for the legacy seeded catalog and shared
+starter-team preamble. New specialized agents should go into `agents/` instead of
+that Python file. Over time, the built-ins should migrate into the same
+directory structure.
 
 ## Local development
 
@@ -132,6 +171,8 @@ uvicorn app.main:app --reload --port 8002
 # smoke test
 curl -s localhost:8002/health
 curl -s -H "X-Marketplace-Key: $MARKETPLACE_API_KEY" localhost:8002/v1/templates | jq
+python -m app.cli lint-all agents
+python -m app.cli sync agents --allow-uneval
 ```
 
 ## Bench-side configuration

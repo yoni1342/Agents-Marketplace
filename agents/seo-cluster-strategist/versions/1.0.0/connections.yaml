@@ -1,0 +1,13 @@
+connections:
+  - id: strategy-tracker
+    app: google_sheets
+    required: true
+    purpose: Store the cluster plan and route it into the team's workflow.
+    user_configures: true
+    actions:
+      - google_sheets-add-single-row
+  - id: strategy-alerts
+    app: slack
+    required: false
+    purpose: Notify a strategist or operator when a cluster draft is ready.
+    user_configures: true

@@ -1,0 +1,18 @@
+connections:
+  - id: linkedin-publish
+    app: linkedin
+    required: true
+    purpose: Queue or publish the finished post in the client's own account.
+    user_configures: true
+  - id: content-tracker
+    app: google_sheets
+    required: true
+    purpose: Store the generated post or review queue row.
+    user_configures: true
+    actions:
+      - google_sheets-add-single-row
+  - id: editor-alerts
+    app: slack
+    required: false
+    purpose: Notify an editor or strategist when a draft is ready.
+    user_configures: true

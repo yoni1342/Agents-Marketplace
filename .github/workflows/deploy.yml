@@ -9,6 +9,7 @@ on:
     paths:
       - "app/**"
       - "alembic/**"
+      - "agents/**"
       - "requirements.txt"
       - "Dockerfile"
       - ".github/scripts/run-migrations.sh"

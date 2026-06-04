@@ -1,0 +1,18 @@
+version: 1.0.0
+name: The SEO Cluster Strategist
+category: Marketing
+maintainer: yoni
+tagline: "I turn a domain, topic, and audience into a ranked cluster plan your team can actually execute."
+model:
+  default: gpt-4o
+  hard: gpt-4o
+  cheap: gpt-4o-mini
+budget:
+  default_monthly_cents: 4000
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate
