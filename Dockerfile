@@ -10,9 +10,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# App + migrations (examples/docs are dev-only — see .dockerignore).
+# App + migrations + git-authored specs (examples/docs are dev-only).
 COPY app ./app
 COPY alembic ./alembic
+COPY specs ./specs
 COPY alembic.ini ./
 
 EXPOSE 8002
@@ -24,6 +25,7 @@ EXPOSE 8002
 # and publishing a spec WITH eval_cases is blocked (fail-closed) — publish such
 # specs from a host/CI that has the CLI, or via ?allow_uneval=true.
 
-# Migrate then boot. For multi-replica deploys, run the migration as a separate
-# one-shot job instead and drop the `alembic upgrade` here.
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8002"]
+# Migrate, sync git-authored specs into the DB, then boot. The sync currently
+# uses --allow-uneval because this image doesn't ship the claude CLI; the
+# stronger gate should run earlier in CI or from a host with the CLI present.
+CMD ["sh", "-c", "alembic upgrade head && python -m app.cli sync specs --allow-uneval && uvicorn app.main:app --host 0.0.0.0 --port 8002"]

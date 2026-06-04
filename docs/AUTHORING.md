@@ -4,6 +4,31 @@ The marketplace is dev-curated: quality is the moat, not the catalog UI. This is
 the bar a spec should clear before you publish. Field mechanics are in
 [SPEC.md](./SPEC.md); this doc is the *craft*.
 
+## Package structure
+
+Specialized agents now live in git as packages:
+
+```text
+specs/<slug>/
+  agent.yaml
+  versions/
+    1.0.0.yaml
+```
+
+- `agent.yaml` holds the stable marketplace metadata (`role`, `sort_order`,
+  starter vs hireable).
+- `versions/*.yaml` are the immutable published agent specs.
+
+Local commands:
+
+```bash
+python -m app.cli lint-all specs
+python -m app.cli sync specs --allow-uneval
+```
+
+`sync` writes the git-authored packages into the local marketplace DB so you can
+test the real browse/pull behavior end to end.
+
 ## The loop
 
 ```

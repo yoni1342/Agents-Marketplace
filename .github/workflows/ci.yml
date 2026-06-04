@@ -21,14 +21,7 @@ jobs:
           set -euo pipefail
           # The example template must always be valid.
           python -m app.cli lint examples/agent-spec.template.yaml
-          # Lint any committed specs, if a specs/ dir exists.
-          if [ -d specs ]; then
-            find specs -type f \( -name "*.yaml" -o -name "*.yml" \) -print0 | \
-              while IFS= read -r -d '' f; do
-                echo "linting $f"
-                python -m app.cli lint "$f"
-              done
-          fi
+          python -m app.cli lint-all specs
       - name: Import check
         run: python -c "import app.main; import app.spec; import app.eval; print('imports ok')"
 
@@ -55,6 +48,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: alembic upgrade head (fresh DB)
         run: alembic upgrade head
+      - name: sync file-authored specs into the fresh DB
+        run: python -m app.cli sync specs --allow-uneval
 
   docker-build:
     runs-on: ubuntu-latest
