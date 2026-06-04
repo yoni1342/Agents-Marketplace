@@ -52,6 +52,11 @@ jobs:
         run: |
           set -euo pipefail
           repo="$REG/${ECR_PREFIX}/${SERVICE}"
+          if aws ecr describe-images --repository-name "${ECR_PREFIX}/${SERVICE}" \
+            --image-ids imageTag="$SHA" >/dev/null 2>&1; then
+            echo "image exists, skipping push for $SERVICE:$SHA"
+            exit 0
+          fi
           docker build -t "$repo:$SHA" .
           docker push "$repo:$SHA"
 
