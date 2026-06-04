@@ -10,10 +10,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# App + migrations + git-authored specs (examples/docs are dev-only).
+# App + migrations + git-authored agents (examples/docs are dev-only).
 COPY app ./app
 COPY alembic ./alembic
-COPY specs ./specs
+COPY agents ./agents
 COPY alembic.ini ./
 
 EXPOSE 8002
@@ -28,4 +28,4 @@ EXPOSE 8002
 # Migrate, sync git-authored specs into the DB, then boot. The sync currently
 # uses --allow-uneval because this image doesn't ship the claude CLI; the
 # stronger gate should run earlier in CI or from a host with the CLI present.
-CMD ["sh", "-c", "alembic upgrade head && python -m app.cli sync specs --allow-uneval && uvicorn app.main:app --host 0.0.0.0 --port 8002"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app.cli sync agents --allow-uneval && uvicorn app.main:app --host 0.0.0.0 --port 8002"]

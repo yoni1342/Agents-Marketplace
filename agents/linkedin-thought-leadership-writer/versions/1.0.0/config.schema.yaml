@@ -1,0 +1,21 @@
+brand_voice:
+  type: string
+  required: true
+target_audience:
+  type: string
+  required: true
+industry:
+  type: string
+  default: ""
+themes:
+  type: array
+  default: []
+off_limits_topics:
+  type: array
+  default: []
+preferred_post_length:
+  type: integer
+  default: 180
+scheduling_timezone:
+  type: string
+  default: UTC

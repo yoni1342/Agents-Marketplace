@@ -1,0 +1,18 @@
+domain:
+  type: string
+  required: true
+target_audience:
+  type: string
+  required: true
+owned_topics:
+  type: array
+  required: true
+off_limits_topics:
+  type: array
+  default: []
+competitors:
+  type: array
+  default: []
+publish_capacity_per_month:
+  type: integer
+  default: 8

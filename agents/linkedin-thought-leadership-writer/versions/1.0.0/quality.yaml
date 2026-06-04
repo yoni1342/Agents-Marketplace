@@ -1,0 +1,23 @@
+rubric: |
+  Score high when the output has a concrete operator angle, a clear hook, a
+  publish-ready body, and a realistic posting note. Penalize generic advice,
+  vague abstractions, hype language, weak business relevance, or missing output
+  sections.
+eval_cases:
+  - input:
+      topic: "Microsoft changed pricing on a core SMB product line"
+      note: "Focus on what operators should watch in budget planning."
+    expect:
+      min_score: 0.7
+      must_include:
+        - "TITLE:"
+        - "POST:"
+        - "POSTING_NOTE:"
+        - "CONNECTIONS_NEEDED:"
+      must_not:
+        - "Let me know if you'd like"
+        - "🔥"
+safety_dimensions:
+  - hallucination
+  - brand_drift
+  - topical_drift

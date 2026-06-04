@@ -98,12 +98,21 @@ The marketplace is moving to **git-authored agent packages**. Postgres remains
 the serving layer, but the source of truth for curated agents lives in:
 
 ```text
-specs/
+agents/
   <slug>/
     agent.yaml          # stable marketplace metadata (role, sort order, starter?)
+    README.md           # human-facing description / maintenance notes
     versions/
-      1.0.0.yaml        # immutable agent spec version
-      1.1.0.yaml
+      1.0.0/
+        version.yaml
+        system_prompt.md
+        tools.yaml
+        connections.yaml
+        config.schema.yaml
+        quality.yaml
+        scripts/
+      1.1.0/
+        ...
 ```
 
 This is the structure we want for specialized agents: prompt, tools,
@@ -112,19 +121,23 @@ and go through PR review.
 
 ### Add a new specialized agent
 
-1. Create `specs/<slug>/agent.yaml`:
+1. Create `agents/<slug>/agent.yaml`:
    - `slug`
    - `role`
    - `sort_order`
    - `is_starter`
    - `is_built_in`
-2. Add one or more version files under `specs/<slug>/versions/`.
-   Each file is a full schema-v1 agent spec (see `docs/SPEC.md`).
+2. Add a version bundle under `agents/<slug>/versions/<semver>/`:
+   - `version.yaml` — name, tagline, maintainer, model routing, budget
+   - `system_prompt.md` — the actual prompt
+   - `tools.yaml` — tool declarations + optional `skills` / `scripts`
+   - `connections.yaml` — required client-side app connections (Pipedream contract)
+   - `config.schema.yaml` — what the client is allowed to customize
+   - `quality.yaml` — rubric, eval cases, safety dimensions
 3. Validate locally:
 
 ```bash
-python -m app.cli lint-all specs
-python -m app.cli eval specs/<slug>/versions/1.0.0.yaml   # if the claude CLI is available
+python -m app.cli lint-all agents
 ```
 
 4. Merge to `main`.
@@ -132,7 +145,7 @@ python -m app.cli eval specs/<slug>/versions/1.0.0.yaml   # if the claude CLI is
 On deploy, the marketplace container runs:
 
 ```bash
-python -m app.cli sync specs --allow-uneval
+python -m app.cli sync agents --allow-uneval
 ```
 
 That syncs new git-authored packages into Postgres and updates the marketplace
@@ -141,7 +154,7 @@ without manual DB edits.
 ### Transitional note
 
 `app/builtin_templates.py` still exists for the legacy seeded catalog and shared
-starter-team preamble. New specialized agents should go into `specs/` instead of
+starter-team preamble. New specialized agents should go into `agents/` instead of
 that Python file. Over time, the built-ins should migrate into the same
 directory structure.
 
@@ -158,8 +171,8 @@ uvicorn app.main:app --reload --port 8002
 # smoke test
 curl -s localhost:8002/health
 curl -s -H "X-Marketplace-Key: $MARKETPLACE_API_KEY" localhost:8002/v1/templates | jq
-python -m app.cli lint-all specs
-python -m app.cli sync specs --allow-uneval
+python -m app.cli lint-all agents
+python -m app.cli sync agents --allow-uneval
 ```
 
 ## Bench-side configuration

@@ -21,7 +21,7 @@ jobs:
           set -euo pipefail
           # The example template must always be valid.
           python -m app.cli lint examples/agent-spec.template.yaml
-          python -m app.cli lint-all specs
+          python -m app.cli lint-all agents
       - name: Import check
         run: python -c "import app.main; import app.spec; import app.eval; print('imports ok')"
 
@@ -48,8 +48,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: alembic upgrade head (fresh DB)
         run: alembic upgrade head
-      - name: sync file-authored specs into the fresh DB
-        run: python -m app.cli sync specs --allow-uneval
+      - name: sync file-authored agents into the fresh DB
+        run: python -m app.cli sync agents --allow-uneval
 
   docker-build:
     runs-on: ubuntu-latest

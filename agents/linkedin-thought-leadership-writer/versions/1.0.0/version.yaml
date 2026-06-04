@@ -1,0 +1,17 @@
+version: 1.0.0
+name: The LinkedIn Thought Leadership Writer
+category: Marketing
+maintainer: yoni
+tagline: "I turn operator insight into publish-ready LinkedIn posts with the right connections attached."
+model:
+  default: gpt-4o
+  cheap: gpt-4o-mini
+budget:
+  default_monthly_cents: 3500
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate

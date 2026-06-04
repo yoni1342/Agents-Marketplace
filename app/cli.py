@@ -7,10 +7,10 @@ code.
 Usage (from the Agents-Marketplace repo root, in its venv):
 
     python -m app.cli lint    <spec.yaml>
-    python -m app.cli lint-all [specs/]
+    python -m app.cli lint-all [agents/]
     python -m app.cli eval    <spec.yaml>
     python -m app.cli publish <spec.yaml> [--url URL] [--key KEY] [--allow-uneval]
-    python -m app.cli sync    [specs/] [--allow-uneval]
+    python -m app.cli sync    [agents/] [--allow-uneval]
 
   lint     Validate the spec against schema v1. No network. Exit 1 on error.
   lint-all Validate every git-authored package under specs/.
@@ -175,7 +175,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.set_defaults(func=cmd_lint)
 
     sla = sub.add_parser("lint-all", help="validate all git-authored agent packages")
-    sla.add_argument("root", nargs="?", default="specs")
+    sla.add_argument("root", nargs="?", default="agents")
     sla.set_defaults(func=cmd_lint_all)
 
     se = sub.add_parser("eval", help="run the eval gate locally")
@@ -191,7 +191,7 @@ def build_parser() -> argparse.ArgumentParser:
     pub.set_defaults(func=cmd_publish)
 
     sync = sub.add_parser("sync", help="sync git-authored specs into the local DB")
-    sync.add_argument("root", nargs="?", default="specs")
+    sync.add_argument("root", nargs="?", default="agents")
     sync.add_argument("--allow-uneval", action="store_true",
                       help="allow publishing specs that have no eval_cases")
     sync.set_defaults(func=cmd_sync)
