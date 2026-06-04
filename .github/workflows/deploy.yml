@@ -61,6 +61,8 @@ jobs:
           docker push "$repo:$SHA"
 
       - name: Run DB migrations (one-off Fargate task)
+        env:
+          MIGRATION_IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_PREFIX }}/${{ env.SERVICE }}:${{ github.sha }}
         run: ./.github/scripts/run-migrations.sh "$SERVICE"
 
       - name: Deploy marketplace service
