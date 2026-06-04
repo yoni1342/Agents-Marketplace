@@ -52,9 +52,8 @@ jobs:
         run: |
           set -euo pipefail
           repo="$REG/${ECR_PREFIX}/${SERVICE}"
-          docker build -t "$repo:$SHA" -t "$repo:latest" .
+          docker build -t "$repo:$SHA" .
           docker push "$repo:$SHA"
-          docker push "$repo:latest"
 
       - name: Run DB migrations (one-off Fargate task)
         run: ./.github/scripts/run-migrations.sh "$SERVICE"
