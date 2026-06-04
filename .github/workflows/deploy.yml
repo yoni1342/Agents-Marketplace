@@ -1,0 +1,82 @@
+name: deploy
+
+# Deploys the marketplace (catalog) service to its ECS service in the shared
+# bench-prod cluster. The cluster/ECR/IAM are provisioned by the agent-platform
+# Terraform; this repo just ships its own image. OIDC auth (no static keys).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "alembic/**"
+      - "requirements.txt"
+      - "Dockerfile"
+      - ".github/scripts/run-migrations.sh"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-marketplace-prod
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  CLUSTER: bench-prod
+  ECR_PREFIX: bench-prod
+  SERVICE: marketplace
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag (git SHA), push
+        env:
+          REG: ${{ steps.ecr.outputs.registry }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          repo="$REG/${ECR_PREFIX}/${SERVICE}"
+          docker build -t "$repo:$SHA" -t "$repo:latest" .
+          docker push "$repo:$SHA"
+          docker push "$repo:latest"
+
+      - name: Run DB migrations (one-off Fargate task)
+        run: ./.github/scripts/run-migrations.sh "$SERVICE"
+
+      - name: Deploy marketplace service
+        env:
+          REG: ${{ steps.ecr.outputs.registry }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          family="${CLUSTER}-${SERVICE}"
+          image="$REG/${ECR_PREFIX}/${SERVICE}:$SHA"
+          td=$(aws ecs describe-task-definition --task-definition "$family" \
+                --query 'taskDefinition' --output json)
+          new=$(echo "$td" | jq --arg IMG "$image" '
+            .containerDefinitions[0].image=$IMG
+            | del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)')
+          arn=$(aws ecs register-task-definition --cli-input-json "$new" \
+                --query 'taskDefinition.taskDefinitionArn' --output text)
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+            --task-definition "$arn" --force-new-deployment >/dev/null
+          echo "deployed $SERVICE → $arn"
+
+      - name: Wait for service to stabilize
+        run: aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"
