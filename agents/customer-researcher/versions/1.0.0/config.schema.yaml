@@ -1,0 +1,15 @@
+research_goal:
+  type: string
+  required: true
+target_segment:
+  type: string
+  default: ""
+methods:
+  type: array
+  default: []
+min_evidence_n:
+  type: integer
+  default: 5
+deliverable_format:
+  type: string
+  default: themes

@@ -1,0 +1,17 @@
+version: 1.0.0
+name: The PR Officer
+category: Marketing
+maintainer: yoni
+tagline: "I write the press releases and pitch the journalists who'll actually run them."
+model:
+  default: gpt-4o
+  cheap: gpt-4o-mini
+budget:
+  default_monthly_cents: 2500
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate

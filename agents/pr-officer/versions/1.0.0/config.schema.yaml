@@ -1,0 +1,15 @@
+company_name:
+  type: string
+  required: true
+industry:
+  type: string
+  default: ""
+boilerplate:
+  type: string
+  default: ""
+target_beats:
+  type: array
+  default: []
+spokesperson:
+  type: string
+  default: ""

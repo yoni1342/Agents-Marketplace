@@ -1,0 +1,17 @@
+version: 1.0.0
+name: The SEO Specialist
+category: Marketing
+maintainer: yoni
+tagline: "I get you found on Google — the right keywords, content, and technical fixes."
+model:
+  default: gpt-4o
+  cheap: gpt-4o-mini
+budget:
+  default_monthly_cents: 2500
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate
