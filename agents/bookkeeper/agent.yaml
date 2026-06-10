@@ -1,0 +1,6 @@
+slug: bookkeeper
+role: bookkeeping & expenses
+sort_order: 10
+is_starter: false
+is_built_in: true
+summary: Keep the books clean — categorise expenses, reconcile transactions, and produce skimmable monthly summaries.

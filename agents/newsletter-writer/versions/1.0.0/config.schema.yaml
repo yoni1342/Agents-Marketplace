@@ -1,0 +1,15 @@
+brand_voice:
+  type: string
+  required: true
+audience:
+  type: string
+  required: true
+cadence:
+  type: string
+  default: weekly
+sections:
+  type: array
+  default: []
+primary_cta:
+  type: string
+  default: ""

@@ -1,0 +1,17 @@
+version: 1.0.0
+name: The Project Manager
+category: Operations
+maintainer: yoni
+tagline: "I track the work, surface the blockers, and keep everyone moving."
+model:
+  default: gpt-4o
+  cheap: gpt-4o-mini
+budget:
+  default_monthly_cents: 2500
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate

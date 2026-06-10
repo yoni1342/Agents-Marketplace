@@ -1,0 +1,15 @@
+update_cadence:
+  type: string
+  default: weekly
+status_format:
+  type: string
+  default: RAG
+timezone:
+  type: string
+  default: UTC
+stakeholders:
+  type: array
+  default: []
+working_hours:
+  type: string
+  default: ""

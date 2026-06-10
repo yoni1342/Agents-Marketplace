@@ -1,0 +1,15 @@
+primary_domain:
+  type: string
+  default: ""
+target_market:
+  type: string
+  default: ""
+focus_keywords:
+  type: array
+  default: []
+content_vs_technical:
+  type: string
+  default: both
+competitors:
+  type: array
+  default: []

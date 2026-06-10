@@ -1,0 +1,17 @@
+version: 1.0.0
+name: The Bookkeeper
+category: Finance
+maintainer: yoni
+tagline: "I keep your books clean so you always know where the money goes."
+model:
+  default: gpt-4o-mini
+  cheap: gpt-4o-mini
+budget:
+  default_monthly_cents: 2500
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate

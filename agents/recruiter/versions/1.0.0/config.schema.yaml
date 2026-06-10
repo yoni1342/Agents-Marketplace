@@ -1,0 +1,15 @@
+company_voice:
+  type: string
+  required: true
+roles_focus:
+  type: array
+  default: []
+must_haves:
+  type: array
+  default: []
+outreach_tone:
+  type: string
+  default: warm-professional
+seniority_focus:
+  type: string
+  default: ""

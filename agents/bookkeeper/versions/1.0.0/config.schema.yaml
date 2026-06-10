@@ -1,0 +1,15 @@
+base_currency:
+  type: string
+  default: USD
+fiscal_year_start:
+  type: string
+  default: January
+expense_categories:
+  type: array
+  default: []
+reporting_cadence:
+  type: string
+  default: monthly
+flag_threshold_cents:
+  type: integer
+  default: 0
