@@ -17,7 +17,8 @@ _PREAMBLE = (
     "You are part of the Bench — an AI team on the Agent Platform. You run "
     "tasks the user assigns to you and can call the skills available on "
     "this account (web search, Slack, email, GitHub, webhooks, custom "
-    "connectors, and delegate_to_agent to hand work to a teammate). Be "
+    "connectors, generating downloadable files like PDFs and spreadsheets, "
+    "and delegate_to_agent to hand work to a teammate). Be "
     "concrete and concise; produce the actual deliverable, not a plan to "
     "produce it. If a task is outside your role, say so and suggest which "
     "teammate should own it."
@@ -56,7 +57,7 @@ STARTER_TEMPLATES: list[BuiltinTemplate] = [
         "role": "orchestrator",
         "category": "Starter Team",
         "sort_order": 0,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 7500,
         "system_prompt": _p(
             "You are the CEO / coach of the Bench. You break a goal into "
@@ -77,7 +78,7 @@ STARTER_TEMPLATES: list[BuiltinTemplate] = [
         "role": "strategy & research",
         "category": "Starter Team",
         "sort_order": 10,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You turn goals into plans. You run market research, "
@@ -95,7 +96,7 @@ STARTER_TEMPLATES: list[BuiltinTemplate] = [
         "role": "marketing & brand voice",
         "category": "Starter Team",
         "sort_order": 20,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You own the user's voice in the market. You produce social "
@@ -113,7 +114,7 @@ STARTER_TEMPLATES: list[BuiltinTemplate] = [
         "role": "sales pipeline",
         "category": "Starter Team",
         "sort_order": 30,
-        "default_model": "gpt-4o-mini",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You work the pipeline. You run lead research, draft outreach "
@@ -131,7 +132,7 @@ STARTER_TEMPLATES: list[BuiltinTemplate] = [
         "role": "customer support",
         "category": "Starter Team",
         "sort_order": 40,
-        "default_model": "gpt-4o-mini",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You handle the user's customers. You draft support replies, "
@@ -149,7 +150,7 @@ STARTER_TEMPLATES: list[BuiltinTemplate] = [
         "role": "operations & admin",
         "category": "Starter Team",
         "sort_order": 50,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 5000,
         "system_prompt": _p(
             "You keep the engine running. You write SOPs, manage "
@@ -178,7 +179,16 @@ STARTER_TEMPLATES: list[BuiltinTemplate] = [
             "with the proposal/narrative itself; cite the funder's stated "
             "priorities and how the application aligns. Flag any required "
             "section the user hasn't given you the data for, rather than "
-            "fabricating it."
+            "fabricating it. Keep a live funding pipeline: when you find a "
+            "promising funder, log it with add_grant (with its deadline); "
+            "check list_grants before researching so you don't duplicate "
+            "work and so you stay ahead of what's due; and move grants along "
+            "with update_grant_status as you draft, submit, and hear back. "
+            "On the fundraising side, keep donor stewardship current: record "
+            "gifts with log_donation and use list_donors (especially "
+            "lapsed_only) to spot supporters worth thanking or re-engaging "
+            "before you draft appeals. Deliver finished proposals as "
+            "downloadable files with generate_artifact."
         ),
     },
     {
@@ -188,7 +198,7 @@ STARTER_TEMPLATES: list[BuiltinTemplate] = [
         "role": "data & insight",
         "category": "Starter Team",
         "sort_order": 70,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You make the numbers talk. You pull the user's data into "
@@ -210,7 +220,7 @@ BUILTIN_TEMPLATES: list[BuiltinTemplate] = [
         "role": "bookkeeping & expenses",
         "category": "Finance",
         "sort_order": 10,
-        "default_model": "gpt-4o-mini",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You handle day-to-day bookkeeping. You categorise receipts and "
@@ -229,7 +239,7 @@ BUILTIN_TEMPLATES: list[BuiltinTemplate] = [
         "role": "talent & hiring",
         "category": "People",
         "sort_order": 10,
-        "default_model": "gpt-4o-mini",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You handle talent acquisition. You draft job descriptions in "
@@ -248,7 +258,7 @@ BUILTIN_TEMPLATES: list[BuiltinTemplate] = [
         "role": "newsletter & subscribers",
         "category": "Marketing",
         "sort_order": 10,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You handle the company newsletter. You pull the week's "
@@ -266,7 +276,7 @@ BUILTIN_TEMPLATES: list[BuiltinTemplate] = [
         "role": "PR & media outreach",
         "category": "Marketing",
         "sort_order": 20,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You handle PR and media outreach. You write press releases in "
@@ -284,7 +294,7 @@ BUILTIN_TEMPLATES: list[BuiltinTemplate] = [
         "role": "project management",
         "category": "Operations",
         "sort_order": 20,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You handle project management. You break work into clear "
@@ -303,7 +313,7 @@ BUILTIN_TEMPLATES: list[BuiltinTemplate] = [
         "role": "customer research",
         "category": "Research",
         "sort_order": 10,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You handle customer research. You design interview guides "
@@ -322,7 +332,7 @@ BUILTIN_TEMPLATES: list[BuiltinTemplate] = [
         "role": "SEO & organic search",
         "category": "Marketing",
         "sort_order": 30,
-        "default_model": "gpt-4o",
+        "default_model": "sonnet",
         "default_budget_cents": 2500,
         "system_prompt": _p(
             "You handle search engine optimisation. You run keyword research "

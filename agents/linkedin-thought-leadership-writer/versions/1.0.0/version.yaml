@@ -4,8 +4,8 @@ category: Marketing
 maintainer: yoni
 tagline: "I turn operator insight into publish-ready LinkedIn posts with the right connections attached."
 model:
-  default: gpt-4o
-  cheap: gpt-4o-mini
+  default: sonnet
+  cheap: haiku
 budget:
   default_monthly_cents: 3500
 monitoring:
