@@ -4,8 +4,8 @@ category: People
 maintainer: yoni
 tagline: "I write the job posts and screen the applicants so you only meet finalists."
 model:
-  default: gpt-4o-mini
-  cheap: gpt-4o-mini
+  default: sonnet
+  cheap: haiku
 budget:
   default_monthly_cents: 2500
 monitoring:

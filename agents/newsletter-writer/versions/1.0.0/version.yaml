@@ -4,8 +4,8 @@ category: Marketing
 maintainer: yoni
 tagline: "I turn your week into a story your subscribers actually open."
 model:
-  default: gpt-4o
-  cheap: gpt-4o-mini
+  default: sonnet
+  cheap: haiku
 budget:
   default_monthly_cents: 2500
 monitoring:

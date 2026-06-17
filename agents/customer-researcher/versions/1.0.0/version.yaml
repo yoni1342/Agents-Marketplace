@@ -4,8 +4,8 @@ category: Research
 maintainer: yoni
 tagline: "I turn customer interviews and surveys into insights you can act on."
 model:
-  default: gpt-4o
-  cheap: gpt-4o-mini
+  default: sonnet
+  cheap: haiku
 budget:
   default_monthly_cents: 2500
 monitoring:

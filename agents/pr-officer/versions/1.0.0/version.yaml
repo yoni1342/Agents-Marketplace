@@ -4,8 +4,8 @@ category: Marketing
 maintainer: yoni
 tagline: "I write the press releases and pitch the journalists who'll actually run them."
 model:
-  default: gpt-4o
-  cheap: gpt-4o-mini
+  default: sonnet
+  cheap: haiku
 budget:
   default_monthly_cents: 2500
 monitoring:
