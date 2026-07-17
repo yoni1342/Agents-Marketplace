@@ -1,0 +1,16 @@
+version: 1.0.0
+name: The Manuscript Editor
+category: Publishing
+maintainer: yoni
+tagline: "I read the whole book — every chapter — and tell your editor what to fix first."
+model:
+  default: gpt-5.6-terra
+budget:
+  default_monthly_cents: 15000
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate

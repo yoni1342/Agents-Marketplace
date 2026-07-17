@@ -1,0 +1,9 @@
+publisher_name:
+  type: string
+  required: true
+house_style_notes:
+  type: string
+  default: ""
+default_focus:
+  type: string
+  default: ""

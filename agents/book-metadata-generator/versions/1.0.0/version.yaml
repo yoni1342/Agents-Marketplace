@@ -1,0 +1,16 @@
+version: 1.0.0
+name: The Metadata Writer
+category: Publishing
+maintainer: yoni
+tagline: "I turn your manuscript summary into copy that sells the book and metadata that finds its readers."
+model:
+  default: gpt-5.6-terra
+budget:
+  default_monthly_cents: 2500
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate

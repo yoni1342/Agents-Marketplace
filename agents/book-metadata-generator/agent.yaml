@@ -1,0 +1,6 @@
+slug: book-metadata-generator
+role: Book metadata & sales copy
+sort_order: 30
+is_starter: false
+is_built_in: true
+summary: Turn a manuscript summary into back-cover copy, retailer metadata, BISAC categories, keywords and promo blurbs — everything a book needs to go on sale.
