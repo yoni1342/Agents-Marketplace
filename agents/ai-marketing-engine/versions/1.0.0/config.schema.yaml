@@ -1,0 +1,16 @@
+brand_name:
+  type: string
+  required: true
+brand_url:
+  type: string
+  default: ""
+default_platforms:
+  type: array
+  default:
+    - Instagram
+    - LinkedIn
+    - X
+    - Facebook
+voice_notes:
+  type: string
+  default: ""

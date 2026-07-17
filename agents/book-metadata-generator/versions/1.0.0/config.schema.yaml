@@ -1,0 +1,12 @@
+publisher_name:
+  type: string
+  required: true
+imprint:
+  type: string
+  default: ""
+primary_retailer:
+  type: string
+  default: "Amazon KDP"
+house_style_notes:
+  type: string
+  default: ""

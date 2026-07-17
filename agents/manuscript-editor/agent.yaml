@@ -1,0 +1,6 @@
+slug: manuscript-editor
+role: Manuscript assessment & author coaching
+sort_order: 32
+is_starter: false
+is_built_in: true
+summary: Reads a full novel or memoir end to end and returns a first-pass editorial assessment — structural read of the whole book plus notes on every chapter.
