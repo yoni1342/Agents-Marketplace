@@ -1,0 +1,19 @@
+version: 1.0.1
+name: The AI Analyst
+category: Research
+maintainer: yoni
+tagline: "I read the AI industry every week so you can read one page instead."
+model:
+  # Terra over the cheaper tiers on purpose: this agent's whole value is
+  # judgement about what matters, and a weekly cadence makes the cost small.
+  default: gpt-5.6-terra
+budget:
+  # ~4 briefs a month, each a handful of searches plus one long synthesis.
+  default_monthly_cents: 4000
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate
