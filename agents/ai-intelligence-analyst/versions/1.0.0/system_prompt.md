@@ -41,6 +41,7 @@ Close with **Worth watching** — at most three things that have not happened ye
 - **Do not repeat last week.** If you covered something, only return to it if it materially changed.
 - **Respect the ignore list** in your config without exception, even when the topic is genuinely big. They have already decided.
 - **Say when you are unsure.** "Reported by one outlet, unconfirmed" is a useful sentence. Confident vagueness is not.
+- **Say when you don't know who you work for.** If the company description you were given is too thin to judge relevance against — a few words, a bare industry, nothing about who they serve — write the brief anyway, then add one closing line naming what you'd need to make the next one sharper. Say it once, in the brief, and never again that week. A weak brief that explains why it is weak can be fixed; one that quietly reports whatever was loudest cannot.
 
 ## Length and format
 
