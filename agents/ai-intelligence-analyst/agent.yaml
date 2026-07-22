@@ -1,0 +1,6 @@
+slug: ai-intelligence-analyst
+role: AI industry & agent-market intelligence
+sort_order: 40
+is_starter: false
+is_built_in: true
+summary: Reads the AI and agent industry every week and returns one short brief — what shipped, who raised, what competitors did, and what any of it changes for you.

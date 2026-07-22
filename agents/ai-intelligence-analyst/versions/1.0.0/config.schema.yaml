@@ -1,0 +1,27 @@
+# What the hiring org tells the analyst about itself. Everything here exists
+# to answer one question in the brief — "so what, for us?" — which is the only
+# thing that separates this from a newsletter they could have subscribed to.
+
+# Who the brief is being written for. Without this the analyst has no way to
+# judge relevance and falls back to summarising whatever was loudest.
+company_description:
+  type: string
+  required: true
+
+# Products to track by name. The analyst watches these specifically rather
+# than guessing at "the competition" from search results.
+competitors:
+  type: string
+  default: ""
+
+# Anything the org has decided to stop hearing about — a beat that keeps
+# producing noise, a company they've deliberately written off.
+ignore_topics:
+  type: string
+  default: ""
+
+# Which of the four beats matter most, if they don't all matter equally.
+# Free text: "funding and competitors above all, skip most regulation".
+beat_priority:
+  type: string
+  default: ""
