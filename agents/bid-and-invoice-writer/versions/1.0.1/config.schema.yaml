@@ -1,0 +1,80 @@
+# What this agent has to know before it can price anything. Every field here
+# ends up on a document a client reads, so a wrong value is worse than a blank
+# one — which is why the risky ones are never inferred, only asked for.
+#
+# NOTE on examples: they are placeholders in someone else's form, so they must
+# be obviously generic. An earlier version used a real company's trading name
+# and VAT number here, which read to the hiring org as their own platform
+# showing them another customer's details. Alarming, and rightly so.
+
+# What the business does and sells. Bench can usually work this out from the
+# org's bench, its connected apps and the work it has been running.
+company_description:
+  type: string
+  required: true
+  infer: true
+  hint: >-
+    What your business does and what it sells. Used to describe the work in a
+    way the client recognises, and to spot when a request is outside what you
+    actually offer.
+  example: >-
+    We design and build websites for small charities — discovery, design,
+    build, and a support retainer afterwards.
+
+# The sender block, verbatim. Bench may fill in the trading name, because it
+# knows it; it must never supply an address or a registration number, because
+# a wrong one goes out on a real invoice.
+business_details:
+  type: string
+  required: true
+  infer: true
+  hint: >-
+    Exactly as it should appear on the document — trading name, address, and
+    any tax or registration number you must show. Bench fills in the name it
+    knows; the address and any registration number are yours to add, and are
+    never guessed at.
+  example: |-
+    Your Company Ltd
+    Street address, city
+    Registration or VAT number
+
+default_currency:
+  type: string
+  default: USD
+  infer: true
+  hint: Three-letter code. Override it per document whenever you need to.
+  example: USD
+
+# Deliberately NOT inferred. A guessed tax rate is a number a client may
+# actually pay, and being right about it is a legal question rather than a
+# modelling one. Blank means "put no tax line on the document".
+default_tax_rate:
+  type: string
+  default: ""
+  hint: >-
+    Your usual sales tax or VAT rate, as a percentage. Leave blank if it varies
+    or you don't charge it — the agent omits tax rather than invent a rate, and
+    Bench never guesses this one for you.
+  example: "15"
+
+default_payment_terms:
+  type: string
+  default: ""
+  infer: true
+  hint: Appears at the bottom of every document unless you change it there.
+  example: Net 30. Bank transfer. 50% deposit on projects over $5,000.
+
+# The single most useful field for quote quality: real numbers stop the agent
+# reaching for plausible-looking ones. Inferable only where past work actually
+# shows what was charged.
+rate_card:
+  type: string
+  default: ""
+  infer: true
+  hint: >-
+    What you charge, in whatever form you keep it — day rates, per-item prices,
+    typical project bands. The agent prices from this instead of guessing, and
+    says so when a job isn't covered by it.
+  example: >-
+    Discovery $750/day. Design $600/day. Build $480/day.
+    Support retainer $400/month. Rush work +25%.

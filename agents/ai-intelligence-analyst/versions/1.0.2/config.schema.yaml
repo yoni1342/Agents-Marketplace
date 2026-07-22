@@ -1,0 +1,56 @@
+# What the hiring org tells the analyst about itself. Everything here exists
+# to answer one question in the brief — "so what, for us?" — which is the only
+# thing that separates this from a newsletter they could have subscribed to.
+
+# Who the brief is being written for. Without this the analyst has no way to
+# judge relevance and falls back to summarising whatever was loudest.
+#
+# infer: the host platform already knows a great deal about the org hiring
+# this agent — its name, the agents on its bench, the apps it connected, the
+# work it has been running. Making someone retype what the product can already
+# see is the kind of form-filling that kills a hire halfway through.
+company_description:
+  type: string
+  required: true
+  infer: true
+  hint: >-
+    What you do, who you sell to, and what you compete on. Two or three
+    sentences is plenty — it exists so the analyst can judge what actually
+    matters to you rather than summarising whatever was loudest that week.
+  example: >-
+    We sell project-management software to construction firms. Customers are
+    mid-sized contractors; we compete on ease of setup rather than features.
+
+# Products to track by name. The analyst watches these specifically rather
+# than guessing at "the competition" from search results.
+competitors:
+  type: string
+  default: ""
+  hint: >-
+    The products a customer would choose INSTEAD of you. Not the model labs you
+    build on — those are your suppliers, and they are already covered by the
+    releases beat.
+  example: Procore, Buildertrend, Fieldwire
+
+# Anything the org has decided to stop hearing about — a beat that keeps
+# producing noise, a company they've deliberately written off.
+ignore_topics:
+  type: string
+  default: ""
+  hint: >-
+    Subjects to leave out even when they're big. This is how the brief stays
+    short.
+  example: >-
+    General AI hype, chip supply news, benchmark leaderboards
+
+# Which of the four beats matter most, if they don't all matter equally.
+beat_priority:
+  type: string
+  default: ""
+  hint: >-
+    Which of the four beats to lead with — what shipped, funding and M&A, your
+    named competitors, adoption and regulation. Leave blank to weight them by
+    whatever actually moved.
+  example: >-
+    Competitors and funding first. Model releases only when they change what we
+    can build. Regulation last, and only if it lands on small AI companies.

@@ -1,0 +1,16 @@
+version: 1.0.0
+name: The Bid Writer
+category: Finance
+maintainer: yoni
+tagline: "Tell me what the job is; I'll price it out and hand you a quote to check."
+model:
+  default: gpt-5.6-terra
+budget:
+  default_monthly_cents: 3000
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate

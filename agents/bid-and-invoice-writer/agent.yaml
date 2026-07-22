@@ -1,0 +1,6 @@
+slug: bid-and-invoice-writer
+role: Quotes, bids & invoicing
+sort_order: 41
+is_starter: false
+is_built_in: true
+summary: Turns "quote them for the website rebuild" into a real bid or invoice you review, edit and approve — with every total calculated for you, not written by a model.

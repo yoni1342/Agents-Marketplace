@@ -1,0 +1,69 @@
+# What this agent has to know before it can price anything. Every field here
+# ends up on a document a client reads, so a wrong value is worse than a blank
+# one — the prompts below all push toward "leave it out" over "guess".
+
+# Who the quote comes FROM. Appears verbatim in the sender block.
+#
+# infer: Bench already knows the organisation's name and a good deal about what
+# it does, so the description half of this can be filled in. The address and
+# registration details can't be — see business_details.
+company_description:
+  type: string
+  required: true
+  infer: true
+  hint: >-
+    What your business does and what it sells. Used to describe the work in a
+    way the client recognises, and to spot when a request is outside what you
+    actually offer.
+  example: >-
+    We build websites and internal tools for small charities — discovery,
+    design, build and a support retainer. Most projects run four to ten weeks.
+
+# The literal text of the sender block. Never inferred: a guessed VAT number
+# or a wrong address on an invoice is a real-world problem, not a typo.
+business_details:
+  type: string
+  required: true
+  hint: >-
+    Exactly as it should appear on the document — trading name, address, and
+    any tax or registration number you're required to show. Copied verbatim; it
+    is never guessed at.
+  example: |-
+    Brownmine Ltd
+    22 Bole Road, Addis Ababa
+    VAT 0012345678
+
+default_currency:
+  type: string
+  default: USD
+  hint: Three-letter code. Override it per document whenever you need to.
+  example: USD
+
+# Blank means "don't put a tax line on the document", which is the safe
+# default: a made-up rate is a number the client may actually pay.
+default_tax_rate:
+  type: string
+  default: ""
+  hint: >-
+    Your usual sales tax or VAT rate, as a percentage. Leave blank if it varies
+    or you don't charge it — the agent will omit tax rather than invent a rate.
+  example: "15"
+
+default_payment_terms:
+  type: string
+  default: ""
+  hint: Appears at the bottom of every document unless you change it there.
+  example: Net 30. Bank transfer. 50% deposit on projects over $5,000.
+
+# The single most useful field for quote quality: real numbers stop the agent
+# reaching for plausible-looking ones.
+rate_card:
+  type: string
+  default: ""
+  hint: >-
+    What you charge, in whatever form you keep it — day rates, per-item prices,
+    typical project bands. The agent prices from this instead of guessing, and
+    says so when a job isn't covered by it.
+  example: >-
+    Discovery workshop $750/day. Design $600/day. Build $480/day.
+    Support retainer $400/month. Rush work +25%.
