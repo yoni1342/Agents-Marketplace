@@ -1,0 +1,17 @@
+version: 1.0.0
+name: The Social Media & Ads Manager
+category: Marketing
+maintainer: yoni
+tagline: "I plan the story, fill the calendar, and never post anything you haven't approved."
+model:
+  default: sonnet
+  cheap: haiku
+budget:
+  default_monthly_cents: 4000
+monitoring:
+  track:
+    - tokens
+    - cost
+    - latency
+    - quality_score
+    - flag_rate

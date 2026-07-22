@@ -1,0 +1,46 @@
+# The Slack channel where every post is shown for approval before it goes out.
+# Required with no default on purpose: this agent will not queue a post until it
+# knows where to ask, and a wrong-but-plausible default would send approvals
+# somewhere nobody is reading.
+approval_channel:
+  type: string
+  required: true
+  hint: >-
+    The Slack channel where I'll post each item for approval before it
+    publishes. Pick one from the list — the bot must already be in it.
+  example: "#marketing"
+# How far ahead of the scheduled time to ask. Long enough that someone has a
+# real chance to say no; short enough that the post is still topical.
+approval_lead_minutes:
+  type: integer
+  default: 60
+  hint: How many minutes before the scheduled time I should ask for approval.
+brand_voice:
+  type: string
+  required: true
+  hint: >-
+    How you sound: the words you use, the ones you never use, how formal, how
+    much personality. The single biggest lever on whether a post sounds like you.
+  example: >-
+    Direct and practical, first person plural. Short sentences. No hype words
+    ("revolutionary", "game-changing"), no emoji in the first line.
+target_audience:
+  type: string
+  required: true
+  hint: Who you are talking to, and what they already know.
+  example: Operations leads at 20-200 person services businesses.
+platforms:
+  type: array
+  default:
+    - linkedin
+  hint: >-
+    Which networks to plan for. Available: linkedin, facebook, instagram,
+    twitter, threads, bluesky.
+posting_timezone:
+  type: string
+  default: UTC
+  hint: IANA timezone the calendar is planned in, e.g. Europe/London.
+off_limits_topics:
+  type: array
+  default: []
+  hint: Subjects never to post about.
