@@ -108,12 +108,28 @@ class ToolDecl(BaseModel):
 
 class ConfigField(BaseModel):
     """One client-customizable field — the guardrail definition. ``required``
-    fields must be supplied at pull time; others fall back to ``default``."""
+    fields must be supplied at pull time; others fall back to ``default``.
+
+    ``hint`` and ``example`` exist because a required field with nothing but a
+    humanized name above it is a wall. "Company Description *" tells someone
+    that we want one, not how long it should be, what it is for, or what a good
+    one looks like — so they either write one line that is too thin to be
+    useful or abandon the hire. Both render in the client's form: the hint as
+    help text, the example as the input's placeholder.
+
+    ``infer`` marks a field the *host platform* may fill in on the user's
+    behalf from what it already knows about them. The marketplace neither
+    performs nor validates that — it only carries the author's declaration that
+    guessing here is welcome, so a client that can guess knows it may.
+    """
 
     model_config = ConfigDict(extra="forbid")
     type: ConfigType
     required: bool = False
     default: Any | None = None
+    hint: str | None = None
+    example: str | None = None
+    infer: bool = False
 
 
 class EvalExpect(BaseModel):
