@@ -1,8 +1,14 @@
 """restate the starter crew's card descriptions
 
 Revision ID: 0007_crew_cards
-Revises: 0005_publishing
+Revises: 0006_social_ads
 Create Date: 2026-09-08
+
+Chained onto 0006 because production's database is already stamped there —
+0006 shipped to prod before its PR merged, so main was behind the live schema
+and `alembic upgrade head` could not find the revision the database claimed to
+be on. Merging that PR and pointing this at it puts the file history and the
+running database back on the same line.
 
 The taglines shipped with the starter team were first-person slogans — "I make
 your numbers talk so you decide with evidence, not gut" — which describe a
@@ -24,7 +30,7 @@ from alembic import op
 from app.builtin_templates import STARTER_TEMPLATES
 
 revision: str = "0007_crew_cards"
-down_revision: Union[str, Sequence[str], None] = "0005_publishing"
+down_revision: Union[str, Sequence[str], None] = "0006_social_ads"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
