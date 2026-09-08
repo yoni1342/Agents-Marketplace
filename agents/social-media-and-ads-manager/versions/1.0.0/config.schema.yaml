@@ -1,0 +1,46 @@
+# Schema v1 config fields carry type/required/default only — there is no hint or
+# example yet — so the guidance a client needs is written here as comments, and
+# repeated in the system prompt where the agent itself needs it.
+
+# The Slack channel where every post is shown for approval before it goes out.
+# Required with no default on purpose: a plausible default would send approvals
+# somewhere nobody is reading, which is indistinguishable from working right up
+# until something publishes that shouldn't have. Bench renders this as a live
+# channel dropdown — the bot must already be in the channel it picks.
+approval_channel:
+  type: string
+  required: true
+
+# How many minutes before the scheduled time to ask. Long enough that someone
+# has a real chance to say no, short enough that the post is still topical.
+approval_lead_minutes:
+  type: integer
+  default: 60
+
+# How you sound: the words you use, the ones you never use, how formal, how much
+# personality. The single biggest lever on whether a post sounds like you.
+brand_voice:
+  type: string
+  required: true
+
+# Who you are talking to, and what they already know.
+target_audience:
+  type: string
+  required: true
+
+# Networks to plan for. Supported: linkedin, facebook, instagram, twitter,
+# threads, bluesky. Reddit is not — Blotato has no Reddit integration at all.
+platforms:
+  type: array
+  default:
+    - linkedin
+
+# IANA timezone the calendar is planned in, e.g. Europe/London.
+posting_timezone:
+  type: string
+  default: UTC
+
+# Subjects never to post about.
+off_limits_topics:
+  type: array
+  default: []
