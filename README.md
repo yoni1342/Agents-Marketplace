@@ -21,9 +21,8 @@ The catalog holds **two kinds** of agent, distinguished by `is_starter`:
   that Bench auto-seeds into **every** org at signup. Hidden from the
   hireable browse list; served only via `GET /v1/templates/starter`.
 - **Hireable specialists** (`is_starter = false`) — extras an admin can add
-  on demand (Bookkeeper, Recruiter, Newsletter Writer, PR Officer, Project
-  Manager, Customer Researcher, SEO Specialist). These are what the
-  marketplace browse page shows.
+  on demand (Bookkeeper, Recruiter, PR Officer, Customer Researcher, SEO
+  Specialist). These are what the marketplace browse page shows.
 
 ## Definition time vs. run time
 
