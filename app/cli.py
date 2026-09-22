@@ -161,7 +161,8 @@ def cmd_sync(args: argparse.Namespace) -> int:
     print(
         f"\npackages={report.packages} "
         f"identities(created={report.identities_created}, updated={report.identities_updated}) "
-        f"versions(created={report.versions_created}, skipped={report.versions_skipped})"
+        f"versions(created={report.versions_created}, skipped={report.versions_skipped}) "
+        f"admin_managed_skipped={report.admin_managed_skipped}"
     )
     return 0
 

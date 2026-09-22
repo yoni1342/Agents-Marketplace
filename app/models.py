@@ -78,6 +78,18 @@ class AgentTemplate(SQLModel, table=True):
     # (semver string). Empty until the slug has at least one published version;
     # the flat columns above remain the v0 definition during the transition.
     latest_version: str = Field(default="")
+    # Set when a Bench platform admin edits, creates or publishes this template
+    # through the API. From then on the admin owns it: the git sync on boot
+    # leaves it alone, so an edit made in the admin panel is not silently
+    # reverted by the next deploy.
+    admin_edited_at: datetime | None = Field(default=None, sa_column=Column(_TZ_DATETIME, nullable=True))
+    # What a new hire starts on, chosen in Bench's admin panel: "" = Auto
+    # (OpenRouter picks per message) or a model id; and its image model, ""
+    # (automatic), "openai" or "gemini". Not part of a version and never
+    # touched by the git sync — `default_model` is the spec's routing default,
+    # which the sync rewrites, so it can't carry a choice.
+    hire_model: str = Field(default="")
+    hire_image_model: str = Field(default="")
     created_at: datetime = Field(default_factory=_utcnow, sa_column=Column(_TZ_DATETIME))
 
 
@@ -129,3 +141,14 @@ class AgentTemplateVersion(SQLModel, table=True):
     # The eval gate's structured output (scores per dimension, failures).
     eval_report: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSONB))
     published_at: datetime = Field(default_factory=_utcnow, sa_column=Column(_TZ_DATETIME))
+
+
+class RetiredSlug(SQLModel, table=True):
+    """A template an admin deleted. The git sync skips these slugs, so a
+    deleted agent whose package is still in agents/ does not come back on the
+    next boot. Creating the slug again through the API clears it."""
+
+    __tablename__ = "retired_template_slugs"
+
+    slug: str = Field(primary_key=True)
+    retired_at: datetime = Field(default_factory=_utcnow, sa_column=Column(_TZ_DATETIME))

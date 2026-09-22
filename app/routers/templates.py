@@ -11,7 +11,7 @@ guarded by the shared service key.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -21,7 +21,7 @@ from sqlmodel import Session, select
 from .. import eval as eval_gate
 from ..auth import require_service_key, verify_caller
 from ..db import get_session
-from ..models import AgentTemplate, AgentTemplateVersion
+from ..models import AgentTemplate, AgentTemplateVersion, RetiredSlug
 from ..spec import ConfigField, SpecValidationError, load_spec, validate_overrides
 
 router = APIRouter(prefix="/v1/templates", tags=["marketplace"])
@@ -46,6 +46,9 @@ class TemplateEntry(BaseModel):
     # Newest published spec version for this slug ("" if none yet). Lets the
     # client compute "upgrade available" against what it pulled.
     latest_version: str = ""
+    # What a new hire starts on ("" = Auto / automatic). See the model.
+    hire_model: str = ""
+    hire_image_model: str = ""
 
 
 class TemplateDetail(TemplateEntry):
@@ -54,6 +57,10 @@ class TemplateDetail(TemplateEntry):
 
     system_prompt: str
     created_at: datetime
+    maintainer: str = ""
+    is_starter: bool = False
+    # When a Bench admin took this template over (None = still git-managed).
+    admin_edited_at: datetime | None = None
 
 
 class TemplateListResponse(BaseModel):
@@ -71,6 +78,9 @@ class TemplateUpsert(BaseModel):
     category: str
     sort_order: int = 0
     is_built_in: bool = True
+    maintainer: str = ""
+    hire_model: str = ""
+    hire_image_model: str = ""
 
 
 class TemplatePatch(BaseModel):
@@ -83,6 +93,9 @@ class TemplatePatch(BaseModel):
     category: str | None = None
     sort_order: int | None = None
     is_built_in: bool | None = None
+    maintainer: str | None = None
+    hire_model: str | None = None
+    hire_image_model: str | None = None
 
 
 def _to_entry(t: AgentTemplate) -> TemplateEntry:
@@ -97,6 +110,8 @@ def _to_entry(t: AgentTemplate) -> TemplateEntry:
         sort_order=t.sort_order,
         is_built_in=t.is_built_in,
         latest_version=t.latest_version or "",
+        hire_model=t.hire_model or "",
+        hire_image_model=t.hire_image_model or "",
     )
 
 
@@ -105,6 +120,9 @@ def _to_detail(t: AgentTemplate) -> TemplateDetail:
         **_to_entry(t).model_dump(),
         system_prompt=t.system_prompt,
         created_at=t.created_at,
+        maintainer=t.maintainer or "",
+        is_starter=t.is_starter,
+        admin_edited_at=t.admin_edited_at,
     )
 
 
@@ -158,6 +176,54 @@ def list_starter_templates(
     return StarterListResponse(templates=[_to_detail(t) for t in rows])
 
 
+class AdminTemplateEntry(TemplateEntry):
+    """A catalog row as an operator sees it: hidden ones included."""
+
+    maintainer: str = ""
+    admin_edited_at: datetime | None = None
+    version_count: int = 0
+    created_at: datetime
+
+
+class AdminTemplateListResponse(BaseModel):
+    templates: list[AdminTemplateEntry]
+
+
+@router.get("/all", response_model=AdminTemplateListResponse)
+def list_all_templates(
+    _: None = Depends(require_service_key),
+    session: Session = Depends(get_session),
+) -> AdminTemplateListResponse:
+    """Every hireable template, including hidden ones (``is_built_in=false``)
+    — the public list above can't show an operator what they've taken off
+    the shelf. The starter crew is not here: it's Bench's core team, managed
+    as Crew, not sold. Declared before ``/{slug}`` so "all" isn't a slug."""
+    rows = session.exec(
+        select(AgentTemplate)
+        .where(AgentTemplate.is_starter == False)  # noqa: E712
+        .order_by(AgentTemplate.category, AgentTemplate.sort_order, AgentTemplate.name)
+    ).all()
+    counts: dict[str, int] = {}
+    for slug in session.exec(select(AgentTemplateVersion.slug)).all():
+        counts[slug] = counts.get(slug, 0) + 1
+    return AdminTemplateListResponse(
+        templates=[
+            AdminTemplateEntry(
+                **_to_entry(t).model_dump(),
+                maintainer=t.maintainer or "",
+                admin_edited_at=t.admin_edited_at,
+                version_count=counts.get(t.slug, 0),
+                created_at=t.created_at,
+            )
+            for t in rows
+        ]
+    )
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 @router.get("/{slug}", response_model=TemplateDetail)
 def get_template(
     slug: str,
@@ -186,7 +252,10 @@ def create_template(
     ).first()
     if existing is not None:
         raise HTTPException(status_code=409, detail="Slug already exists")
-    t = AgentTemplate(**body.model_dump())
+    t = AgentTemplate(**body.model_dump(), admin_edited_at=_now())
+    retired = session.get(RetiredSlug, body.slug)
+    if retired is not None:
+        session.delete(retired)
     session.add(t)
     session.commit()
     session.refresh(t)
@@ -207,6 +276,8 @@ def update_template(
         raise HTTPException(status_code=404, detail="Template not found")
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(t, field, value)
+    # An operator's edit: the git sync must not undo it on the next boot.
+    t.admin_edited_at = _now()
     session.add(t)
     session.commit()
     session.refresh(t)
@@ -224,6 +295,9 @@ def delete_template(
     ).first()
     if t is None:
         raise HTTPException(status_code=404, detail="Template not found")
+    # Remembered, so the git sync doesn't bring it back from agents/.
+    if session.get(RetiredSlug, slug) is None:
+        session.add(RetiredSlug(slug=slug))
     session.delete(t)
     session.commit()
 
@@ -344,26 +418,33 @@ def publish_version(
         )
 
     # --- the eval/quality gate (build plan §7) ------------------------------
+    # Strict unless ``allow_uneval``; with it, the same rule as the git sync: a
+    # gate that can't run here (the image ships no claude CLI) or a failing
+    # report still publishes, recorded as eval_passed=false with the reason.
     eval_passed = False
     eval_report: dict = {}
     if spec.quality.eval_cases:
         try:
             report = eval_gate.run_eval(spec)
         except eval_gate.EvalError as exc:
-            raise HTTPException(status_code=503, detail=f"Eval gate unavailable: {exc}")
-        eval_report = report.to_dict()
-        if not report.passed:
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "message": (
-                        f"{slug} v{spec.version} failed the eval/quality gate — "
-                        "not published. Fix the prompt and bump the version."
-                    ),
-                    "report": eval_report,
-                },
-            )
-        eval_passed = True
+            if not allow_uneval:
+                raise HTTPException(status_code=503, detail=f"Eval gate unavailable: {exc}")
+            eval_report = {"reason": "published by an operator without a runnable eval gate", "error": str(exc)}
+        else:
+            eval_report = report.to_dict()
+            if report.passed:
+                eval_passed = True
+            elif not allow_uneval:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": (
+                            f"{slug} v{spec.version} failed the eval/quality gate — "
+                            "not published. Fix the prompt and bump the version."
+                        ),
+                        "report": eval_report,
+                    },
+                )
     elif not allow_uneval:
         raise HTTPException(
             status_code=422,
@@ -397,6 +478,16 @@ def publish_version(
     template.latest_version = max(candidates, key=_semver_key)
     if not template.maintainer:
         template.maintainer = spec.maintainer
+    # The listing follows the newest version, as it does after a git sync, so
+    # the card and what a hire gets never disagree.
+    if template.latest_version == spec.version:
+        template.name = spec.name
+        template.tagline = spec.tagline
+        template.category = spec.category
+        template.system_prompt = spec.system_prompt
+        template.default_model = spec.model.default
+        template.default_budget_cents = spec.budget.default_monthly_cents
+    template.admin_edited_at = _now()
     session.add(template)
 
     session.commit()
@@ -462,6 +553,41 @@ def validate_config(
     except SpecValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return ValidateConfigResponse(effective=effective)
+
+
+@router.delete("/{slug}/versions/{version}", status_code=204)
+def delete_version(
+    slug: str,
+    version: str,
+    _: None = Depends(require_service_key),
+    session: Session = Depends(get_session),
+) -> None:
+    """Remove one published version — an operator's mistake. Published versions
+    never change, but they can go; the caller (Bench) refuses while a hired
+    copy still runs it. The newest-version pointer and the listing's prompt,
+    model and budget follow what's left, as they do after a publish."""
+    template = session.exec(select(AgentTemplate).where(AgentTemplate.slug == slug)).first()
+    v = session.exec(
+        select(AgentTemplateVersion)
+        .where(AgentTemplateVersion.slug == slug)
+        .where(AgentTemplateVersion.version == version)
+    ).first()
+    if template is None or v is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+    session.delete(v)
+    session.flush()
+    rest = session.exec(select(AgentTemplateVersion).where(AgentTemplateVersion.slug == slug)).all()
+    if rest:
+        newest = max(rest, key=lambda r: _semver_key(r.version))
+        template.latest_version = newest.version
+        template.system_prompt = newest.system_prompt
+        template.default_model = (newest.model_routing or {}).get("default") or template.default_model
+        template.default_budget_cents = newest.budget_cents
+    else:
+        template.latest_version = ""
+    template.admin_edited_at = _now()
+    session.add(template)
+    session.commit()
 
 
 @router.get("/{slug}/versions/{version}", response_model=VersionDetail)
