@@ -8,7 +8,7 @@ from typing import Any
 from sqlmodel import Session, select
 
 from . import eval as eval_gate
-from .models import AgentTemplate, AgentTemplateVersion
+from .models import AgentTemplate, AgentTemplateVersion, RetiredSlug
 from .spec import AgentSpec, SpecValidationError
 from .spec_repo import AgentPackage, RepoValidationError, discover_packages
 
@@ -31,6 +31,8 @@ class SyncReport:
     packages: int = 0
     identities_created: int = 0
     identities_updated: int = 0
+    # Packages left alone because an admin owns or deleted the template.
+    admin_managed_skipped: int = 0
     versions_created: int = 0
     versions_skipped: int = 0
     versions: list[SyncedVersion] = field(default_factory=list)
@@ -117,7 +119,21 @@ def sync_specs(
     packages = discover_packages(root)
     report = SyncReport(packages=len(packages))
 
+    retired = set(session.exec(select(RetiredSlug.slug)).all())
     for package in packages:
+        # An admin deleted it, or edited it in Bench's admin panel: the admin's
+        # version wins over git, whole — identity and versions alike, so the
+        # listing and what a new hire gets can never come from two sources.
+        slug = package.manifest.slug
+        owned = session.exec(
+            select(AgentTemplate.id).where(
+                AgentTemplate.slug == slug,
+                AgentTemplate.admin_edited_at.is_not(None),  # type: ignore[union-attr]
+            )
+        ).first()
+        if slug in retired or owned is not None:
+            report.admin_managed_skipped += 1
+            continue
         template, identity_action = _upsert_identity(session, package)
         if identity_action == "created":
             report.identities_created += 1
